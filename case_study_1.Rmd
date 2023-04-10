@@ -1,0 +1,51 @@
+---
+title: Case Study 1 Google Certification
+author: Glenn Tariga
+date: 4/7/2023
+output: html_notebook
+---
+
+## How Does a Bike-Share Navigate Speedy Success?
+
+In this case study I am going to tackle the question: ***How do annual members and casual riders use Cyclistic bikes differently?*** 
+
+**Note:** That this notebook presentation is to highlight my skills as a Data Analyst so this presentation is more about me explaining my work step by step and is not a concise slideshow that you will present to stakeholders.
+
+### Background Story
+
+I am working as a junior data analyst working for a company called Cyclistic. The company found out that annual members are more profitable compared to casual riders. Now the company is trying to figure out how to convert casual riders into annual members to increase profits. My marketing team is assigned three questions to answer:
+
+1. How do annual members and casual riders use Cyclistic bikes differently?
+2. Why would casual riders buy Cyclistic annual memberships?
+3. How can Cyclistic use digital media to influence casual riders to become members?
+
+As you have heard before I am tasked to answer the question: **How do annual members and casual riders use Cyclistic bikes differently?**. This is the summarize story as to why I am creating this presentation before you.
+
+### Figuring out what is needed? (Ask process)
+
+Please click this [link](https://docs.google.com/spreadsheets/d/1B-ZO3WSyAEodYEbzNtDHNKyJqkojTlyXqTtCxU6Qu-I/edit?usp=sharing) to see the organized spreadsheet of task.
+
+### Preparing and Cleaning the Dataset
+
+First I would like to state that the data source we will be using is from the *divvy-tripdata* dataset. Click [dataset](https://divvy-tripdata.s3.amazonaws.com/index.html) to see all the raw spreadsheet download link. 
+
+I decided to clean the data first using R and upload the cleaned tables to BigQuery for easy access and querying in the future. The first step I did to clean the data is to delete null fields for all the tables because I can't use data with blanks in fear that it will create bad conclusions and there is no way for me to retrieve the missing null values.However in order for me to that I want to merge all the dataset by year so in order to semi automate this process I did the following code below.
+
+```{r}
+
+ride_info_2020 <- data.frame()
+
+for(n in 1:9){ 
+
+  df <- paste("ride_2020_",n,sep = "")
+  
+  ## this to automate creating df to merge them into one because the spreadsheet for some years are separated so I want them to be merged into one year
+  ## merge the dataframes by adding row to the existing dataframes is what the rbind is for and the assign is to automate the variable naming  
+  
+  ride_info_2020 <- rbind(ride_info_2020,assign(df, read_csv(paste("ride_info_2020_",n,".csv",sep=""))))
+}
+
+str(ride_info_2020)
+
+```
+
