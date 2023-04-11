@@ -32,6 +32,8 @@ First I would like to state that the data source we will be using is from the *d
 I decided to clean the data first using R and upload the cleaned tables to BigQuery for easy access and querying in the future. The first step I did to clean the data is to delete null fields for all the tables because I can't use data with blanks in fear that it will create bad conclusions and there is no way for me to retrieve the missing null values.However, in order for me to that I want to merge all the dataset by year so in order to semi automate this process I did the following code below.
 
 ```{r}
+install.packages("tidyverse")
+library(tidyverse)
 
 ##This is the path to my work directory change it to your path where you stored the csv files 
 setwd("C:/Users/Glenn/Documents/Case Study 1 Google Certification")
@@ -196,5 +198,5 @@ These questions should help, but there are many more questions we can ask to fur
 
 
 ### Apppendix
-If you want to see SQL queries written for Big Query click this [link]() 
+If you want to see SQL queries and the R files written for this project click on this [link](https://github.com/gtariga/Case_Study_1_Google_Cert_Data_Analytics/tree/main) 
 
