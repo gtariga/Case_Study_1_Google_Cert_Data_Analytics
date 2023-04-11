@@ -1,0 +1,56 @@
+--fixing the table since I had to put in all string fields in ride_info
+
+--I made a mistake I didn't exclude header row when creating the table so need to delete header rows values
+DELETE FROM `iconic-access-381917.case_study_1.ride_info` 
+WHERE
+  started_at = "started_at";
+
+--Trouble shooting why my query didn't go 
+SELECT
+  DISTINCT LENGTH(TRIM(started_at))
+FROM `iconic-access-381917.case_study_1.ride_info`;
+
+SELECT
+  started_at
+FROM 
+  `iconic-access-381917.case_study_1.ride_info`
+WHERE
+  LENGTH(started_at) = 10;
+
+--fixing started_at and ended_at to a date time format in sql
+SELECT 
+  CAST( CONCAT(SUBSTRING(started_at, 1, 10), " ",SUBSTRING(started_at,12,8)) AS DATETIME FORMAT 'YYYY-MM-DD HH24:MI:SS') AS started_at,
+  CAST( CONCAT(SUBSTRING(ended_at, 1, 10), " ",SUBSTRING(ended_at,12,8)) AS DATETIME FORMAT 'YYYY-MM-DD HH24:MI:SS') AS ended_at,
+FROM `iconic-access-381917.case_study_1.ride_info`;
+
+--fixing the lat and lng cloumns
+SELECT
+  CAST(start_lat AS FLOAT64) AS start_lat,
+  CAST(start_lng AS FLOAT64) AS start_lng,
+  CAST(end_lat AS FLOAT64) AS end_lat,
+  CAST(end_lng AS FLOAT64) AS end_lng
+FROM 
+  `iconic-access-381917.case_study_1.ride_info`;
+
+--fixing the time_length_of_ride and manhattan_dist and year
+SELECT
+  CAST(time_length_of_ride AS FLOAT64) AS time_length_of_ride_in_mins,
+  CAST(manhattan_dist AS FLOAT64) AS manhattan_dist,
+  CAST(year AS INT64) AS year
+FROM 
+  `iconic-access-381917.case_study_1.ride_info`;
+
+--creating a table using bigquery we just need to run the select statement and in query setting select save query as a table
+SELECT
+  * EXCEPT (started_at, ended_at, start_lat, start_lng, end_lat, end_lng, time_length_of_ride, manhattan_dist, year),
+  CAST( CONCAT(SUBSTRING(started_at, 1, 10), " ",SUBSTRING(started_at,12,8)) AS DATETIME FORMAT 'YYYY-MM-DD HH24:MI:SS') AS started_at,
+  CAST( CONCAT(SUBSTRING(ended_at, 1, 10), " ",SUBSTRING(ended_at,12,8)) AS DATETIME FORMAT 'YYYY-MM-DD HH24:MI:SS') AS ended_at,
+  CAST(start_lat AS FLOAT64) AS start_lat,
+  CAST(start_lng AS FLOAT64) AS start_lng,
+  CAST(end_lat AS FLOAT64) AS end_lat,
+  CAST(end_lng AS FLOAT64) AS end_lng,
+  CAST(time_length_of_ride AS FLOAT64) AS time_length_of_ride_in_mins,
+  CAST(manhattan_dist AS FLOAT64) AS manhattan_dist,
+  CAST(year AS INT64) AS year
+FROM 
+  `iconic-access-381917.case_study_1.ride_info`;
