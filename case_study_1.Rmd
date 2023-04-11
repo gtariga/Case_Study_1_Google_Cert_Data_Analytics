@@ -27,15 +27,19 @@ Please click this [link](https://docs.google.com/spreadsheets/d/1B-ZO3WSyAEodYEb
 
 ### Preparing and Cleaning the Dataset
 
-First I would like to state that the data source we will be using is from the *divvy-tripdata* dataset. Click [dataset](https://divvy-tripdata.s3.amazonaws.com/index.html) to see all the raw spreadsheet download link. 
+First I would like to state that the data source we will be using is from the *divvy-tripdata* dataset. Click [dataset](https://divvy-tripdata.s3.amazonaws.com/index.html) to see all the raw spreadsheet download link. (This follows the data license agreement under Prohibited conduct b. where it states "however, you may include the Data as source material, as applicable, in analyses, reports, or studies published or distributed for non-commercial purposes;") 
 
-I decided to clean the data first using R and upload the cleaned tables to BigQuery for easy access and querying in the future. The first step I did to clean the data is to delete null fields for all the tables because I can't use data with blanks in fear that it will create bad conclusions and there is no way for me to retrieve the missing null values.However in order for me to that I want to merge all the dataset by year so in order to semi automate this process I did the following code below.
+I decided to clean the data first using R and upload the cleaned tables to BigQuery for easy access and querying in the future. The first step I did to clean the data is to delete null fields for all the tables because I can't use data with blanks in fear that it will create bad conclusions and there is no way for me to retrieve the missing null values.However, in order for me to that I want to merge all the dataset by year so in order to semi automate this process I did the following code below.
 
 ```{r}
 
-ride_info_2020 <- data.frame()
+##This is the path to my work directory change it to your path where you stored the csv files 
+setwd("C:/Users/Glenn/Documents/Case Study 1 Google Certification")
 
-for(n in 1:9){ 
+##this will be the initial variable for the loop to work just assign a the first data frame you need to merge
+ride_info_2020 <- read_csv("ride_info_2020_1.csv")
+  
+for(n in 2:9){ 
 
   df <- paste("ride_2020_",n,sep = "")
   
@@ -43,9 +47,154 @@ for(n in 1:9){
   ## merge the dataframes by adding row to the existing dataframes is what the rbind is for and the assign is to automate the variable naming  
   
   ride_info_2020 <- rbind(ride_info_2020,assign(df, read_csv(paste("ride_info_2020_",n,".csv",sep=""))))
+  
+  ##we are trying to save on the space complexity by deleting the dataframes we already merged with the main data frame
+  rm(list = paste("ride_2020_",n,sep = ""))
 }
 
 str(ride_info_2020)
 
+##this will remove the rows with NULL values
+ride_info_2020 <- ride_info_2020 %>%
+  drop_na()
+
+##Start of section for adding columns that will be useful for data analysis
+
+##preparing date time format to calculate length of trip
+##ride_info_2020$new_started_at <- strptime(ride_info_2020$started_at, format = "%m/%d/%Y %H:%M", tz = "UTC") ignore this
+##ride_info_2020$new_ended_at <- strptime(ride_info_2020$ended_at, format = "%m/%d/%Y %H:%M", tz = "UTC") ignore this
+
+##checking if end time is always greater than start time
+bad <- filter(ride_info_2020, started_at > ended_at)
+
+##there are bad entries we need to clean instead of excluding them I will swap their column in the bad and rename. then delete their entries in the main datframe and 
+##then merge the bad database rows into the main dataframe 
+
+#need temp columns for swap
+temp_start <- bad$ended_at
+temp_end <- bad$started_at
+
+##using temp columns to swap values
+bad$ended_at <- temp_end
+bad$started_at <- temp_start
+
+##deleting the bad data from main dataframe
+ride_info_2020 <- ride_info_2020 %>%
+  filter(started_at <= ended_at)
+
+##addind correct data to the main dataframe
+ride_info_2020 <- ride_info_2020 %>%
+  rbind(bad)
+
+#deleting not needed variabels for space complexity
+rm(bad)
+rm(temp_end)
+rm(temp_start)
+
+##adding length of ride in the dataframe
+ride_info_2020 <- ride_info_2020 %>%
+  mutate("time_length_of_ride(mins)" = difftime(ended_at, started_at, units = "mins"))
+
+##adding distance traveled in the dataframe
+
+ride_info_2020 <-mutate(ride_info_2020, "manhattan_dist" = (abs(start_lat - end_lat) + abs(start_lng - end_lng)))
+
+##Checking for bad value on the rest of the column by seeing unique variable stored in dataframe I didn't use pivot because I feel its easier to view them this way
+for (n in 1:15) {
+  df <- paste("unique_values_col_",n,sep = "")
+  assign(df,print(unique(ride_info_2020[n])))
+}
+
+##After checking unique values are okay we clean up for space complexity
+for (n in 1:15) {
+  
+  rm(list = paste("unique_values_col_",n,sep = ""))
+  
+}
+
+
+##Now even if I didn't really see any extra white spaces it is still good to run trim on the data type chr this will probably run for a while
+ride_info_2020 <- ride_info_2020 %>%
+  mutate(across(where(is.character),function(x)trimws(x)))
+
+
+
+##End of section for cleaning and adding columns that will be useful for data analysis
+
 ```
+
+After cleaning the year ride info for 2020 I proceed to do the same process above for the rest of the years I will be doing analysis on. I plan to merge all the riding info into a one big data frame. The code that does this process is the code chunk below.
+
+```{r}
+
+##Merging All the dataframes together
+ride_info <- ride_info_2020
+
+df_list <- list(ride_info_2021,ride_info_2022,ride_info_2023)
+
+for (df in df_list) {
+  
+  ride_info <- rows_insert(ride_info,df)
+  
+}
+
+##cleaning up for space complexity
+rm(df)
+rm(df_list)
+rm(list = c("ride_info_2020","ride_info_2021","ride_info_2022","ride_info_2023"))
+
+```
+Now that the data is cleaned and prepared we can now start analyzing the data. 
+
+### Analyzing the Dataset
+
+#### About the Data
+
+Before Starting my analysis I just want to talk about the limits of this dataset. The data only has information from riders in the Chicago area, so we can't use this data for establishing any general trends about bikers. We don't have really any tracking for the path the bikers took to get to point a to point B the best way we got to represent this is the Manhattan distance, but we can't really say anything about the true distance they traveled for example if they start and end at the same point we don't know what path they took. 
+
+#### Analysis in Tableau
+
+I will start my analysis in Tableau to create some dashboard data viz. I like using r with static data viz but when I want to create dashboards I prefer Tableau. However, in order for me to access the ride_info table that we have we need to save it as a csv in r. Below is the code to do just that.
+```{r}
+##saving the ride_info dataframe as a csv
+library(data.table)
+
+fwrite(ride_info, "C:\\Users\\Glenn\\Documents\\Case Study 1 Google Certification\\ride_info.csv")
+```
+
+### Analyzing using R
+
+Here is the code I will use R to analyze the dataset
+```{r}
+###using r to analyze
+ride_info_summarry <- ride_info %>%
+  group_by(member_casual, year) %>%
+  summarise(average_ride_time_in_min = mean(`time_length_of_ride(mins)`), 
+            count_of_rides = n(),
+            average_dist = mean(manhattan_dist),
+            count_of_riders = n_distinct(ride_id))
+
+###scatter plot
+ride_info %>%
+  ggplot() + geom_bar(mapping = aes(x=rideable_type,fill = member_casual)) +
+  labs(title = "Count of Rider Who Uses the Type of Bike") +
+  facet_wrap("~year")
+```
+
+If we look at the summary table the count of distinct Riders for member and casual are about the same but the average time spent riding for casual people are higher than that of members. This shows that casual riders prefer longer rides. Now we if we look at the Tableau [table](https://public.tableau.com/views/CaseStudyAboutBikes/Sheet2?:language=en-US&:display_count=n&:origin=viz_share_link) Here you can see some tables reinforcing the idea that casual riders like to take longer bike rides.
+
+### Suggestion for Marketing
+As this is the only pattern that we can deduce about the casual riders that uses our services I would suggest that we introduce a survey to our customers to further analyze the difference in behavior between member riders and casual riders. 
+
+Questions such as:
+
+*For what purpose do you use the bike service most of the time?
+*What station do you prefer and why?
+*How long are your usual bike rides?
+
+These questions should help, but there are many more questions we can ask to further analyze the behavior of our casual rider customers. At these point we don't have enough data to produce a good marketing campaign. I hope you can give us more time to conduct the survey.
+
+
+### Apppendix
+If you want to see SQL queries written for Big Query click this [link]() 
 
